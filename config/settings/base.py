@@ -3,7 +3,12 @@ from pathlib import Path
 
 env = environ.Env()
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
-environ.Env.read_env(BASE_DIR / '.env')
+
+# Only read .env locally — on ECS, env vars come from SSM/task definition
+try:
+    environ.Env.read_env(BASE_DIR / '.env')
+except Exception:
+    pass
 
 SECRET_KEY = env('DJANGO_SECRET_KEY')
 DEBUG = env.bool('DEBUG', default=False)
@@ -26,14 +31,16 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'security.middleware.RateLimitMiddleware',
-    'security.middleware.InputSanitizationMiddleware',
-    'django.middleware.security.SecurityMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.security.SecurityMiddleware',          # 1st always
+    'corsheaders.middleware.CorsMiddleware',                  # 2nd (before common)
+    'django.contrib.sessions.middleware.SessionMiddleware',   # 3rd — REQUIRED before auth
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware', # after sessions
     'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'security.middleware.RateLimitMiddleware',                # custom last
+    'security.middleware.InputSanitizationMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -59,9 +66,9 @@ CACHES = {'default': {
 
 from datetime import timedelta
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
+    'ACCESS_TOKEN_LIFETIME':  timedelta(minutes=15),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
-    'ROTATE_REFRESH_TOKENS': True,
+    'ROTATE_REFRESH_TOKENS':  True,
 }
 
 REST_FRAMEWORK = {
@@ -73,14 +80,14 @@ REST_FRAMEWORK = {
     ],
 }
 
-GROQ_API_KEY       = env('GROQ_API_KEY', default='')
-LLM_MODEL          = 'llama-3.3-70b-versatile'
-EMBEDDING_MODEL    = 'all-MiniLM-L6-v2'  # free local model, no API key needed
-RETRIEVAL_TOP_K    = 5
-METRICS_TOKEN      = env('METRICS_TOKEN', default='changeme')
+GROQ_API_KEY    = env('GROQ_API_KEY',    default='')
+LLM_MODEL       = 'llama-3.3-70b-versatile'
+EMBEDDING_MODEL = 'all-MiniLM-L6-v2'
+RETRIEVAL_TOP_K = 5
+METRICS_TOKEN   = env('METRICS_TOKEN',   default='changeme')
 
-CELERY_BROKER_URL        = env('REDIS_URL')
-CELERY_RESULT_BACKEND    = env('REDIS_URL')
+CELERY_BROKER_URL     = env('REDIS_URL')
+CELERY_RESULT_BACKEND = env('REDIS_URL')
 
 STATIC_URL  = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
