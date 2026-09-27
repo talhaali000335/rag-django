@@ -1,0 +1,4 @@
+RITY_ADMIN_PASSWORD: admin
+
+volumes:
+  pgdata:

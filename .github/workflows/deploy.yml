@@ -1,0 +1,65 @@
+# .github/workflows/deploy.yml
+name: Deploy to AWS
+
+on:
+  push:
+    branches: [main]
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: rag-app
+  ECS_CLUSTER: rag-cluster
+  ECS_SERVICE: rag-api
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest   # ← GitHub's server, has Docker pre-installed
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image to ECR
+        # Docker runs on GitHub's machine — NOT on your local machine
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          IMAGE="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          LATEST="$ECR_REGISTRY/$ECR_REPOSITORY:latest"
+
+          # Build (no .env needed — secrets come from ECS Task Definition)
+          docker build -t $IMAGE -t $LATEST -f docker/Dockerfile .
+
+          # Push both tags
+          docker push $IMAGE
+          docker push $LATEST
+
+          echo "IMAGE=$IMAGE" >> $GITHUB_ENV
+
+      - name: Deploy to ECS (force new deployment)
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service ${{ env.ECS_SERVICE }} \
+            --force-new-deployment \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Wait for deployment to stabilize
+        run: |
+          aws ecs wait services-stable \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE }} \
+            --region ${{ env.AWS_REGION }}
+          echo "✅ Deployment complete"

@@ -1,0 +1,1 @@
+{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["ssm:GetParameters","ssm:GetParameter","ssm:GetParametersByPath"],"Resource":"arn:aws:ssm:us-east-1:515579969505:parameter/rag-app/prod/*"}]}
