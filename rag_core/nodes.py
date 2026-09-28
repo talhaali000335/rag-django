@@ -5,12 +5,19 @@ from django.conf import settings
 import time
 from mlops.metrics import LATENCY_HISTOGRAM, RETRIEVAL_COUNTER
 
-# The AI model we use for grading and generating (Groq — free!)
-llm = ChatGroq(
-    model=settings.LLM_MODEL,
-    temperature=0.1,
-    api_key=settings.GROQ_API_KEY,
-)
+# Lazy — only created on first request, not at import time
+# This saves ~200MB RAM at startup per worker
+_llm = None
+
+def get_llm():
+    global _llm
+    if _llm is None:
+        _llm = ChatGroq(
+            model=settings.LLM_MODEL,
+            temperature=0.1,
+            api_key=settings.GROQ_API_KEY,
+        )
+    return _llm
 
 
 # ── NODE 1: Retrieve documents ─────────────────────
@@ -35,7 +42,7 @@ def grade_documents(state: dict) -> dict:
     """Filter out documents that aren't relevant to the question."""
     graded = []
     for doc in state['documents']:
-        result = llm.invoke(GRADE_PROMPT.format(
+        result = get_llm().invoke(GRADE_PROMPT.format(
             question=state['question'],
             doc=doc['content'][:400]
         ))
@@ -53,7 +60,7 @@ Return ONLY the improved question, nothing else.
 
 def rewrite_query(state: dict) -> dict:
     """Make the question better if retrieval failed."""
-    result = llm.invoke(REWRITE_PROMPT.format(question=state['question']))
+    result = get_llm().invoke(REWRITE_PROMPT.format(question=state['question']))
     return {
         'rewritten_question': result.content.strip(),
         'retries': state.get('retries', 0) + 1
@@ -78,5 +85,5 @@ def generate(state: dict) -> dict:
     """Generate an answer from the graded documents."""
     context = "\n\n---\n\n".join(d['content'] for d in state['graded_docs'])
     question = state.get('rewritten_question') or state['question']
-    result = llm.invoke(GENERATE_PROMPT.format(context=context, question=question))
+    result = get_llm().invoke(GENERATE_PROMPT.format(context=context, question=question))
     return {'generation': result.content}
