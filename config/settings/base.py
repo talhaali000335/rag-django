@@ -48,7 +48,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 TEMPLATES = [{
     'BACKEND': 'django.template.backends.django.DjangoTemplates',
-    'DIRS': [],
+    'DIRS': [BASE_DIR / 'templates'],    # ← CHANGE THIS (was empty [])
     'APP_DIRS': True,
     'OPTIONS': {'context_processors': [
         'django.template.context_processors.request',
@@ -92,3 +92,4 @@ CELERY_RESULT_BACKEND = env('REDIS_URL')
 STATIC_URL  = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+CORS_ALLOW_ALL_ORIGINS = True           # ← ADD THIS
