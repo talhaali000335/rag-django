@@ -4,6 +4,8 @@ from rest_framework.permissions import IsAuthenticated
 from rag_core.graph import rag_graph
 from mlops.metrics import QUERY_COUNTER, ERROR_COUNTER
 import uuid
+import logging
+logger = logging.getLogger(__name__)
 
 class ChatView(APIView):
     permission_classes = [IsAuthenticated]
@@ -38,5 +40,6 @@ class ChatView(APIView):
 
         except Exception as e:
             ERROR_COUNTER.inc()
-            return Response({'error': str(e)}, status=500)  # ← change this line
+            logger.exception("chat failed")
+            return Response({'error': f"{type(e).__name__}: {e}"}, status=500)
             
