@@ -1,13 +1,18 @@
-from langchain_groq import ChatGroq
+import re
 from langchain_core.prompts import ChatPromptTemplate
-from django.conf import settings
 from mlops.metrics import HALLUCINATION_SCORE_HISTOGRAM
+from .llm import build_llm
 
-llm = ChatGroq(
-    model=settings.LLM_MODEL,
-    temperature=0.0,
-    api_key=settings.GROQ_API_KEY,
-)
+_llm = None
+
+
+def _get_llm():
+    """Created on first use, not at import time."""
+    global _llm
+    if _llm is None:
+        _llm = build_llm(temperature=0.0)
+    return _llm
+
 
 HALLUCINATION_PROMPT = ChatPromptTemplate.from_template("""
 You are checking if an AI answer is grounded in the provided context.
@@ -26,6 +31,14 @@ Return ONLY the number, nothing else. Example: 0.2
 """)
 
 
+def _parse_score(text: str) -> float:
+    """Pull the first number out of the reply, even if the model adds extra words."""
+    match = re.search(r'\d*\.?\d+', text or '')
+    if not match:
+        return 0.0
+    return max(0.0, min(1.0, float(match.group())))
+
+
 def hallucination_check_node(state: dict) -> dict:
     """Check if the generated answer is grounded in the retrieved documents."""
     context = "\n\n---\n\n".join(
@@ -38,14 +51,13 @@ def hallucination_check_node(state: dict) -> dict:
         return {'hallucination_score': 0.0}
 
     try:
-        result = llm.invoke(HALLUCINATION_PROMPT.format(
+        result = _get_llm().invoke(HALLUCINATION_PROMPT.format(
             context=context,
             generation=generation,
         ))
-        score = float(result.content.strip())
-        score = max(0.0, min(1.0, score))   # clamp between 0 and 1
+        score = _parse_score(result.content)
     except Exception:
-        score = 0.0   # if LLM returns unexpected format, assume no hallucination
+        score = 0.0   # if every model fails, don't block the answer
 
     HALLUCINATION_SCORE_HISTOGRAM.observe(score)
     return {'hallucination_score': score}

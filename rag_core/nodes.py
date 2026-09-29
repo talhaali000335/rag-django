@@ -1,22 +1,16 @@
-from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from .retriever import retrieve_relevant_chunks
 from django.conf import settings
 import time
 from mlops.metrics import LATENCY_HISTOGRAM, RETRIEVAL_COUNTER
+from .llm import build_llm
 
-# Lazy — only created on first request, not at import time
-# This saves ~200MB RAM at startup per worker
 _llm = None
 
 def get_llm():
     global _llm
     if _llm is None:
-        _llm = ChatGroq(
-            model=settings.LLM_MODEL,
-            temperature=0.1,
-            api_key=settings.GROQ_API_KEY,
-        )
+        _llm = build_llm(temperature=0.1)
     return _llm
 
 

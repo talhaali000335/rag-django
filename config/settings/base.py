@@ -83,7 +83,13 @@ REST_FRAMEWORK = {
 GROQ_API_KEY    = env('GROQ_API_KEY',    default='')
 AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME', default='')  # ← ADD
 AWS_S3_BUCKET           = env('AWS_S3_BUCKET',           default='')  # ← ADD
-LLM_MODEL       = 'llama-3.3-70b-versatile'
+LLM_MODELS = [
+    m.strip() for m in env(
+        'LLM_MODELS',
+        default='openai/gpt-oss-120b,qwen/qwen3.6-27b,openai/gpt-oss-20b',
+    ).split(',') if m.strip()
+]
+LLM_MODEL = LLM_MODELS[0]   # kept for anything else that reads it
 EMBEDDING_MODEL = 'all-MiniLM-L6-v2'
 RETRIEVAL_TOP_K = 5
 METRICS_TOKEN   = env('METRICS_TOKEN',   default='changeme')
