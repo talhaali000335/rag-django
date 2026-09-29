@@ -24,7 +24,7 @@ def get_llm():
 def retrieve(state: dict) -> dict:
     """Search vector database for relevant chunks."""
     start = time.time()
-    docs = retrieve_relevant_chunks(state['question'])
+    docs = retrieve_relevant_chunks(state.get('rewritten_question') or state['question'])
     LATENCY_HISTOGRAM.labels(node='retrieve').observe(time.time() - start)
     RETRIEVAL_COUNTER.inc()
     return {'documents': docs}
@@ -86,4 +86,4 @@ def generate(state: dict) -> dict:
     context = "\n\n---\n\n".join(d['content'] for d in state['graded_docs'])
     question = state.get('rewritten_question') or state['question']
     result = get_llm().invoke(GENERATE_PROMPT.format(context=context, question=question))
-    return {'generation': result.content}
+    return {'generation': result.content, 'gen_attempts': state.get('gen_attempts', 0) + 1}

@@ -17,7 +17,7 @@ def retrieve_relevant_chunks(query: str, top_k: int = None) -> list:
     chunks = (
         DocumentChunk.objects
         .annotate(distance=CosineDistance('embedding', query_vector))
-        .filter(distance__lt=0.45)   # only close matches
+        .filter(distance__lt=0.7)   # only close matches
         .order_by('distance')[:k]
     )
 
