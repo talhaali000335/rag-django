@@ -38,4 +38,5 @@ class ChatView(APIView):
 
         except Exception as e:
             ERROR_COUNTER.inc()
-            return Response({'error': 'Something went wrong. Try again.'}, status=500)
+            return Response({'error': str(e)}, status=500)  # ← change this line
+            

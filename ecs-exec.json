@@ -1,0 +1,7 @@
+{
+    "cluster":  "rag-cluster",
+    "interactive":  true,
+    "task":  "arn:aws:ecs:us-east-1:515579969505:task/rag-cluster/59d52b0ad11c4041bb6ba4d8d7f6c955",
+    "container":  "rag-api",
+    "command":  "sh"
+}
