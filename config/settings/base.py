@@ -95,3 +95,4 @@ STATIC_URL  = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ALLOW_ALL_ORIGINS = True           # ← ADD THIS
+CELERY_TASK_ALWAYS_EAGER = True   # run ingestion inside the request; no worker needed

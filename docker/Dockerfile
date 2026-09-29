@@ -21,17 +21,17 @@ RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTr
 
 COPY . .
 
-RUN SECRET_KEY=dummy-build-key python manage.py collectstatic --noinput --settings=config.settings.base || true
+# Your settings read DJANGO_SECRET_KEY, DATABASE_URL and REDIS_URL, so all three
+# need dummy values at build time or collectstatic fails.
+RUN DJANGO_SECRET_KEY=dummy-build-key \
+    DATABASE_URL=sqlite:///tmp.db \
+    REDIS_URL=redis://localhost:6379/0 \
+    python manage.py collectstatic --noinput --settings=config.settings.base
 
 EXPOSE 8000
 
-HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=2 \
+HEALTHCHECK --interval=15s --timeout=5s --start-period=60s --retries=2 \
     CMD curl -f http://localhost:8000/health/ || exit 1
 
-# 1 worker only — saves ~400MB RAM
-CMD ["gunicorn", "config.wsgi:application", \
-     "--bind", "0.0.0.0:8000", \
-     "--workers", "1", \
-     "--timeout", "120", \
-     "--access-logfile", "-", \
-     "--error-logfile", "-"]
+# Run migrations first, then start gunicorn (1 worker only — saves ~400MB RAM)
+CMD ["sh", "-c", "python manage.py migrate --noinput && exec gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 1 --timeout 120 --access-logfile - --error-logfile -"]
