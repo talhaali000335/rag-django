@@ -13,3 +13,10 @@ new-taskdef.json
 ecs-exec.json
 ssm-policy.json
 taskdef*.json
+
+*.taskdef.json
+final-taskdef.json
+new-taskdef.json
+ecs-exec.json
+ssm-policy.json
+taskdef*.json
