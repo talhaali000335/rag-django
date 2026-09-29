@@ -7,3 +7,9 @@ __pycache__/
 staticfiles/
 media/
 *.sqlite3
+*.taskdef.json
+final-taskdef.json
+new-taskdef.json
+ecs-exec.json
+ssm-policy.json
+taskdef*.json
