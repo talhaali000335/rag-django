@@ -427,19 +427,6 @@ rag_django/
 
 ---
 
-## Known limitations and roadmap
 
-Being upfront about what this project does **not** do yet:
-
-- **Documents are not isolated per user.** Retrieval searches all chunks in the database, so any signed-in user can get answers from any uploaded document. Fix: filter chunks by `document__uploaded_by` in `retriever.py`.
-- **No self-service sign-up.** Users are created by an admin (`createsuperuser` or the Django admin).
-- **Overly open network settings:** `CORS_ALLOW_ALL_ORIGINS = True` and `ALLOWED_HOSTS = ['*']`. Restrict both to your real domain.
-- **No HTTPS.** The service is reachable over plain HTTP on port 8000. Put an ALB with an ACM certificate in front and enable secure-cookie and HSTS settings.
-- **Ingestion runs inside the request**, so large PDFs are slow and can hit the gunicorn timeout. Move to a real Celery worker with Redis as the broker.
-- **Text-only PDFs.** Scanned or image-only PDFs need OCR, which isn't included.
-- **No dashboards or alerts yet.** Metrics are exposed but not scraped. Add Prometheus and Grafana (or CloudWatch alarms) to make use of them.
-- **No automated tests.** Adding tests for the graph routing and the ingestion pipeline is a good next step.
-
-**Roadmap ideas:** per-user document isolation, ALB + HTTPS, Celery worker service, OCR for scanned files, streaming responses, RAG evaluation (RAGAS) in CI, Terraform for the AWS infrastructure.
 
 ---
